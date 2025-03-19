@@ -1,0 +1,96 @@
+	1.System topology:
+		Protein Topology::pdb2gmx:
+grep JZ4 3HTB_clean.pdb > jz4.pdb
+#tar -zxvf charmm36-jul2022.ff.tgz
+gmx pdb2gmx -f 3HTB_clean.pdb -o 3HTB_processed.gro -ter
+		The Ligand Topology:
+perl sort_mol2_bonds.pl jz4.mol2 jz4_fix.mol2
+python cgenff_charmm2gmx.py JZ4 jz4_fix.mol2 jz4.str charmm36-jul2022.ff
+gmx editconf -f jz4_ini.pdb -o jz4.gro
+	2. Define Box & Solvation:
+gmx editconf -f complex.gro -o newbox.gro -bt dodecahedron -d 1.0
+gmx solvate -cp newbox.gro -cs spc216.gro -p topol.top -o solv.gro
+	3. Add Ions:
+gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr
+gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+	4. Energy Minimization:
+gmx grompp -f em.mdp -c solv_ions.gro -p topol.top -o em.tpr
+gmx mdrun -v -deffnm em
+	5. Equilibration Phase1:
+gmx make_ndx -f jz4.gro -o index_jz4.ndx
+...
+ > 0 & ! a H*
+ > q
+ gmx genrestr -f jz4.gro -n index_jz4.ndx -o posre_jz4.itp -fc 1000 1000 1000
+#tc-grps = Protein JZ4 SOL CL
+gmx make_ndx -f em.gro -o index.ndx
+> 1 | 13
+> q
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -n index.ndx -o nvt.tpr
+gmx mdrun -deffnm nvt
+	6. Equilibration Phase2:
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p topol.top -n index.ndx -o npt.tpr
+gmx mdrun -deffnm npt
+	7. Production MD:
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -n index.ndx -o md_0_10.tpr
+gmx mdrun -deffnm md_0_10
+	8. Analysis:
+		Recentering and Rewrapping Coordinates:
+gmx trjconv -s md_0_10.tpr -f md_0_10.xtc -o md_0_10_center.xtc -center -pbc mol -ur compact
+gmx trjconv -s md_0_10.tpr -f md_0_10_center.xtc -o start.pdb -dump 0
+gmx trjconv -s md_0_10.tpr -f md_0_10_center.xtc -o md_0_10_fit.xtc -fit rot+trans
+		Analyzing Protein-Ligand Interactions and Ligand Dynamics:
+#gmx distance -s md_0_10.tpr -f md_0_10_center.xtc -select 'resname "JZ4" and name OAB plus resid 102 and name OE1' -oall
+#gmx make_ndx -f em.gro -o index.ndx
+...
+ > 13 & a OAB | a H12
+ (creates group 23)
+ > 1 & r 102 & a OE1
+ (creates group 24)
+ > 23 | 24
+ > q
+gmx angle -f md_0_10_center.xtc -n index.ndx -ov angle.xvggmx make_ndx -f em.gro -n index.ndx
+...
+ > 13 & ! a H*
+ > name 26 JZ4_Heavy
+ > q
+gmx rms -s em.tpr -f md_0_10_center.xtc -n index.ndx -tu ns -o rmsd_jz4.xvg
+
+		Protein-Ligand Interaction Energy:
+gmx grompp -f ie.mdp -c npt.gro -t npt.cpt -p topol.top -n index.ndx -o ie.tpr
+gmx mdrun -deffnm ie -rerun md_0_10.xtc -nb cpu
+gmx energy -f ie.edr -o interaction_energy.xvg
+xmgrace rmsd.xvg
+
+
+
+
+ ----- [FINAL MD RUN/PRODUCTION]- - --
+ gedit NPT.mdp (Change MD RUN TIME as per your need)
+ gmx grompp -f MD.mdp -c NPT.gro -t NPT.cpt -p topol.top -n index.ndx -maxwarn 2 -o MD.tpr
+ gmx mdrun -deffnm MD
+ - --- [Recentering and Rewrapping Coordinates] ----
+ gmx trjconv -s MD.tpr -f MD.xtc -o MD_center.xtc -center -pbc mol -ur compact
+ #Choose "Protein" for centering and "System" for output.
+ #To extract the first frame (t = 0 ns) of the trajectory, use trjconv -dump with the recentered trajectory:
+ gmx trjconv -s MD.tpr -f MD_center.xtc -o start.pdb -dump 0
+ gmx rms -s MD.tpr -f MD_center.xtc -o rmsd.xvg
+ gmx rms -s MD.tpr -f MD_center.xtc -o rmsd.xvg -tu ns
+ 4
+ 13
+ #(Select appropritate 2 options one by one and then open the output files in Grace) Select Backbone and then LIG
+ xmgrace rmsd.xvg
+ ------ RMSF Calculations-
+ gmx rmsf -s MD.tpr -f MD_center.xtc -o rmsf.xvg
+ 4
+ (Select appropritate Backbone open the output files in Grace)
+ xmgrace output.xvg
+ - -
+ gmx hbond -s MD.tpr -f MD_center.xtc -num hb.xvg
+ gmx hbond -s MD.tpr -f MD_center.xtc -num hb.xvg -tu ns
+ 1
+ 13
+ xmgrace hb.xvg
+ gmx gyrate -s MD.tpr -f MD_center.xtc -o gyrate1.xvg
+ #Choose the group of your choice
+ xmgrace gyrate1.xvg

@@ -1,0 +1,32 @@
+Example GROMACS commands
+
+#To convert pdb to gro format and topology generation
+gmx pdb2gmx -f <protein_filename.pdb> -o <output_filename.gro> -water spce
+
+#To create a box
+gmx editconf -f <input_file.gro> -o <output_file.gro> -c -d 1.0 -bt cubic
+
+#To solvate box (fille with water)
+gmx solvate -cp <input_file.gro> -cs spc216.gro -o solv.gro -p topol.top
+
+#Add ions to neutralize the system
+gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr
+
+gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+
+#Energy minimization
+gmx grompp -f minim.mdp -c solv_ions.gro -p topol.top -o em.tpr
+gmx mdrun -v -deffnm em
+
+#NVT and NPT ensembling 
+#NVT
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr
+gmx mdrun -deffnm nvt
+
+#NPT
+gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
+gmx mdrun -deffnm npt
+
+#Production run
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md_0_1.tpr
+gmx mdrun -deffnm md_0_1
