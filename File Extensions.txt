@@ -1,0 +1,52 @@
+File Extensions:
+.pdb: Protein Data Bank File
+.pdbqt: AutoDock  output File/PDB Charges File
+.gro: Gromacs Readable File
+.str: Stream File
+.top: Toplogy File
+.mdp: Molecular Dynamic Parameter File
+.tpr: Binary Input File
+.mol2: Tripos Mol2
+.ndx: Index file
+.itp: Include topology file
+.cpt: Checkpoint file
+.xtc: Compressed trajectory file
+.xvggmx: variant or typo of .xvg
+.xvg: Xmgrace graph file
+.edr: Energy file
+.trr: Full-precision trajectory file
+.prm: Parameter File
+.py: Python File
+.pl: Perl File
+
+In Line Options:
+
+-o: Output
+-p: Topology (.top or .itp)
+-c: Box/ Coordinate File (.gro, .pdb)
+-s: structure/State File (.tpr)
+-n: Index file (.ndx)
+-f: Input trajectory/energy file (.xtc, .trr, .edr)
+-r: Restraint potential file (.itp)
+-t: Check Point (.cpt)
+-h: Help
+-v: Verbose mode/Version
+-d: Direction of pulling force /directory
+-r: Restraint Potential
+-bt cubic: Cubic Box
+-tu: Time unit
+-ov: Output volume
+-nb: Non-bonded interactions
+-cp: Configuration of Protein
+-cs: Configuration of Solvent
+-ter: Terminal modifications
+-pname: Positive Ion Name
+-nname: Negative Ion Name
+-neutral: Neutral
+-conc: Conjucation
+-water: Water model selection
+-zxvf: related to file extraction
+
+gopisai@GOPISAI:/mnt/c/Users/gopin/OneDrive/Desktop/Docking$ 
+
+
